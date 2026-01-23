@@ -12,7 +12,8 @@ func RunFile(path string){
 		return
 	}
 	fileContet := string(file[:])
-	fmt.Printf("%v",fileContet)
+	fmt.Println("Scanned tokens:")
+	Scan(fileContet)
 }
 
 
@@ -21,6 +22,7 @@ func RunPrompt (){
 	var input string 
 	for {
 		println("Write script here:\n>>")
+		// todo: replace with bufio.Scanner 
 		fmt.Scanln(&input)
 		if input == "q" {
 			fmt.Println("Quitting interpreter")
