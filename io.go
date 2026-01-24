@@ -12,8 +12,11 @@ func RunFile(path string){
 		return
 	}
 	fileContet := string(file[:])
-	fmt.Println("Scanned tokens:")
-	Scan(fileContet)
+	scanner := NewScanner(fileContet)
+	scanner.Scan()
+	for t := range scanner.tokens {
+		fmt.Printf("%v\n", scanner.tokens[t].lexeme)
+	}
 }
 
 
