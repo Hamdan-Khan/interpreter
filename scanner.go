@@ -100,18 +100,46 @@ func (s *Scanner) scanToken() {
 			s.lineNumber++
 
 		default:
-			if s.isDigit(char){
+			if s.isDigit(char) {
 				s.handleNumber()
+			} else if s.isAlpha(char) { 
+				// an alphanum identifier shouldn't start with a digit
+				s.handleIdentifier()
 			} else {
 				ReportError(s.lineNumber, "", "Unexpected character.")
 			}
 	}
 }
 
+func (s *Scanner) isAlpha(c rune) bool {
+	return c >= 'a' && c <= 'z' ||
+		   c >= 'A' && c <= 'Z' ||
+		   c == '_'
+}
+
+func (s *Scanner) isAlphaNum(c rune) bool {
+	return s.isDigit(c) || s.isAlpha(c)
+}
+
+func (s *Scanner) handleIdentifier() {
+	for s.isAlphaNum(s.next()) {
+		s.advance()
+	}
+	// the scanned alphanum can either be an identifier defined by user or
+	// a reserved keyword like and, or, return, etc.
+	text := s.source[s.start:s.current]
+	tokType, ok := reservedKeywords[text]
+	if !ok {
+		tokType = IDENTIFIER
+	}
+	s.addToken(tokType, nil)
+}
+
 func (s *Scanner) isDigit(c rune) bool {
 	return '0' <= c && c <= '9'
 }
 
+// scans and tokenizes numbers 
 func (s *Scanner) handleNumber() {
 	for s.isDigit(s.next()){
 		s.advance()

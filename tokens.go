@@ -56,3 +56,20 @@ type Token struct {
 	lineNumber int
 	literal any
 }
+
+
+var reservedKeywords = map[string]TokenType{
+	"and": AND,
+    "else": ELSE,
+    "false": FALSE,
+    "for": FOR,
+    "fun": FUNCTION,
+    "if": IF,
+    "nil": NIL,
+    "or": OR,
+    "print": PRINT,
+    "return": RETURN,
+    "true": TRUE,
+    "var": VAR,
+    "while": WHILE,
+}
