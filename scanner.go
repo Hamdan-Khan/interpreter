@@ -82,13 +82,30 @@ func (s *Scanner) scanToken() {
 			}
 
 		case '/':
-			// trailing slash can be a comment, otherwise it's a division operator
+			// trailing slash can be a single-line comment,
+			// multi-line comment or a division operator
 			if s.match('/'){
 				// advance through the comments without tokenizing anything
 				// by looking for the new line or the EOF
 				for (s.next() != '\n' && !s.isAtEnd()) {
 					s.advance()
 				}
+			} else if s.match('*') {
+				// handles block comments /* */, advance till */ is encountered
+				for !s.isAtEnd() && !(s.next() == '*' && s.nextNext() == '/') {
+					if s.next() == '\n'{
+						s.lineNumber ++
+					}
+					s.advance()
+				}
+
+				if s.isAtEnd() {
+					ReportError(s.lineNumber, "", "Unterminated block comment.")
+				}
+
+				// consume the closing * and / 
+				s.advance()
+				s.advance()
 			} else {
 				s.addToken(SLASH, nil)
 			}
