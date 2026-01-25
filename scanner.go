@@ -1,6 +1,8 @@
 package main
 
-import "go/types"
+import (
+	"strconv"
+)
 
 type Scanner struct {
 	tokens []Token
@@ -78,7 +80,7 @@ func (s *Scanner) scanToken() {
 			} else{
 				s.addToken(LESS, nil)
 			}
-		
+
 		case '/':
 			// trailing slash can be a comment, otherwise it's a division operator
 			if s.match('/'){
@@ -90,15 +92,48 @@ func (s *Scanner) scanToken() {
 			} else {
 				s.addToken(SLASH, nil)
 			}
-		
+
 		// ignore space/tabs
 		case ' ':
 		case '\t':
 		case '\n':
 			s.lineNumber++
-		
-		default: ReportError(s.lineNumber, "", "Unexpected character.")
+
+		default:
+			if s.isDigit(char){
+				s.handleNumber()
+			} else {
+				ReportError(s.lineNumber, "", "Unexpected character.")
+			}
 	}
+}
+
+func (s *Scanner) isDigit(c rune) bool {
+	return '0' <= c && c <= '9'
+}
+
+func (s *Scanner) handleNumber() {
+	for s.isDigit(s.next()){
+		s.advance()
+	}
+
+	// if the char after the decimal point is a digit,
+	// its the fractional part. In some cases, it can be a method too
+	if s.next() == '.' && s.isDigit(s.nextNext()) {
+		// pointer moved to the decimal point
+		s.advance()
+
+		// advance through the fractional part
+		for s.isDigit(s.next()) { 
+			s.advance()
+		}
+	}
+
+	numLiteral, err := strconv.ParseFloat(s.source[s.start: s.current], 64)
+	if err != nil {
+		ReportError(s.lineNumber, "", "Unexpected number encountered")
+	}
+	s.addToken(NUMBER, numLiteral)
 }
 
 // returns the char at the current pointer and increments the curr pointer
@@ -125,11 +160,17 @@ func (s *Scanner) next() rune{
 	return rune(s.source[s.current])
 }
 
+// returns the char after the next char
+func (s *Scanner) nextNext() rune{
+	if s.current + 1 >= len(s.source) { return '\000'} // null terminator
+	return rune(s.source[s.current+1])
+}
+
 func (s *Scanner) isAtEnd() bool{
 	return s.current >= len(s.source)
 }
 
-func (s *Scanner) addToken(tokenType TokenType, literal types.Object){
+func (s *Scanner) addToken(tokenType TokenType, literal any){
 	lexeme :=  s.source[s.start: s.current]
 	token := Token{tokenType: tokenType,
 				   literal: literal,

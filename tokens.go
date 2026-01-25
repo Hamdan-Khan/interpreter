@@ -1,7 +1,5 @@
 package main
 
-import "go/types"
-
 type TokenType int
 
 const (
@@ -56,5 +54,5 @@ type Token struct {
 	tokenType TokenType
 	lexeme string
 	lineNumber int
-	literal types.Object
+	literal any
 }
