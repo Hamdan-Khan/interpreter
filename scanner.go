@@ -2,10 +2,12 @@ package main
 
 import (
 	"strconv"
+
+	"github.com/hamdan-khan/interpreter/token"
 )
 
 type Scanner struct {
-	tokens []Token
+	tokens []token.Token
 	lineNumber int	// tracks the line number being scanned
 	start int 		// tracks the start of the lexeme
 	current int 	// tracks the current char
@@ -33,10 +35,10 @@ func (s *Scanner) Scan() {
 	}
 
 	// to denote that we've reached the end of file
-	eofToken := Token{tokenType: EOF,
-					  lexeme: "",
-					  lineNumber: s.lineNumber,
-					  literal: nil}
+	eofToken := token.Token{TokenType: token.EOF,
+					  Lexeme: "",
+					  LineNumber: s.lineNumber,
+					  Literal: nil}
 	s.tokens = append(s.tokens, eofToken)
 }
 
@@ -44,41 +46,41 @@ func (s *Scanner) scanToken() {
 	char := s.advance()
 	switch char {
 		// single char tokens
-		case '(': s.addToken(LEFT_PAREN, nil)
-		case ')': s.addToken(RIGHT_PAREN, nil)
-		case '{': s.addToken(LEFT_BRACE, nil)
-		case '}': s.addToken(RIGHT_BRACE, nil)
-		case ',': s.addToken(COMMA, nil)
-		case '.': s.addToken(DOT, nil)
-		case '-': s.addToken(MINUS, nil)
-		case '+': s.addToken(PLUS, nil)
-		case ';': s.addToken(SEMICOLON, nil)
-		case '*': s.addToken(STAR, nil)
+		case '(': s.addToken(token.LEFT_PAREN, nil)
+		case ')': s.addToken(token.RIGHT_PAREN, nil)
+		case '{': s.addToken(token.LEFT_BRACE, nil)
+		case '}': s.addToken(token.RIGHT_BRACE, nil)
+		case ',': s.addToken(token.COMMA, nil)
+		case '.': s.addToken(token.DOT, nil)
+		case '-': s.addToken(token.MINUS, nil)
+		case '+': s.addToken(token.PLUS, nil)
+		case ';': s.addToken(token.SEMICOLON, nil)
+		case '*': s.addToken(token.STAR, nil)
 
 		// double char tokens
 		case '=':
 			if s.match('='){
-				s.addToken(EQUAL_EQUAL, nil)
+				s.addToken(token.EQUAL_EQUAL, nil)
 			} else{
-				s.addToken(EQUAL, nil)
+				s.addToken(token.EQUAL, nil)
 			}
 		case '!':
 			if s.match('='){
-				s.addToken(NOT_EQUAL, nil)
+				s.addToken(token.NOT_EQUAL, nil)
 			} else{
-				s.addToken(EXCLAMATION, nil)
+				s.addToken(token.EXCLAMATION, nil)
 			}
 		case '>':
 			if s.match('='){
-				s.addToken(GREATER_EQUAL, nil)
+				s.addToken(token.GREATER_EQUAL, nil)
 			} else{
-				s.addToken(GREATER, nil)
+				s.addToken(token.GREATER, nil)
 			}
 		case '<':
 			if s.match('='){
-				s.addToken(LESS_EQUAL, nil)
+				s.addToken(token.LESS_EQUAL, nil)
 			} else{
-				s.addToken(LESS, nil)
+				s.addToken(token.LESS, nil)
 			}
 
 		case '/':
@@ -107,7 +109,7 @@ func (s *Scanner) scanToken() {
 				s.advance()
 				s.advance()
 			} else {
-				s.addToken(SLASH, nil)
+				s.addToken(token.SLASH, nil)
 			}
 
 		// ignore space/tabs
@@ -145,9 +147,9 @@ func (s *Scanner) handleIdentifier() {
 	// the scanned alphanum can either be an identifier defined by user or
 	// a reserved keyword like and, or, return, etc.
 	text := s.source[s.start:s.current]
-	tokType, ok := reservedKeywords[text]
+	tokType, ok := token.ReservedKeywords[text]
 	if !ok {
-		tokType = IDENTIFIER
+		tokType = token.IDENTIFIER
 	}
 	s.addToken(tokType, nil)
 }
@@ -178,7 +180,7 @@ func (s *Scanner) handleNumber() {
 	if err != nil {
 		ReportError(s.lineNumber, "", "Unexpected number encountered")
 	}
-	s.addToken(NUMBER, numLiteral)
+	s.addToken(token.NUMBER, numLiteral)
 }
 
 // returns the char at the current pointer and increments the curr pointer
@@ -188,7 +190,8 @@ func (s *Scanner) advance() rune{
 	return curr
 }
 
-// checks the next char against the given value
+// checks the next char against the given value and increments the curr pointer
+// only if it matches with the expected value
 func (s *Scanner) match(char rune) bool{
 	if s.isAtEnd() { return false }
 	// why check with current? 
@@ -215,11 +218,11 @@ func (s *Scanner) isAtEnd() bool{
 	return s.current >= len(s.source)
 }
 
-func (s *Scanner) addToken(tokenType TokenType, literal any){
+func (s *Scanner) addToken(tokenType token.TokenType, literal any){
 	lexeme :=  s.source[s.start: s.current]
-	token := Token{tokenType: tokenType,
-				   literal: literal,
-				   lexeme: lexeme,
-				   lineNumber: s.lineNumber}
+	token := token.Token{TokenType: tokenType,
+				   Literal: literal,
+				   Lexeme: lexeme,
+				   LineNumber: s.lineNumber}
 	s.tokens = append(s.tokens, token)
 }

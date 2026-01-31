@@ -1,4 +1,4 @@
-package main
+package token
 
 type TokenType int
 
@@ -51,14 +51,14 @@ const (
 )
 
 type Token struct {
-	tokenType TokenType
-	lexeme string
-	lineNumber int
-	literal any
+	TokenType TokenType
+	Lexeme string
+	LineNumber int
+	Literal any
 }
 
 
-var reservedKeywords = map[string]TokenType{
+var ReservedKeywords = map[string]TokenType{
 	"and": AND,
     "else": ELSE,
     "false": FALSE,

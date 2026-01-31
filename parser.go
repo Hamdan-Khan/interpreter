@@ -1,7 +1,14 @@
 package main
 
-import "fmt"
+import "github.com/hamdan-khan/interpreter/token"
 
-func Parse(input string) {
-	fmt.Printf("Parsing string: %v\n", input)
+type Parser struct {
+	tokens []token.Token
+	current int
+}
+
+func NewParser(tokens []token.Token) Parser {
+	return Parser{
+		tokens: tokens,
+	}
 }

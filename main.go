@@ -3,9 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/hamdan-khan/interpreter/scripts"
 )
 
 func main(){
+	scripts.GenerateAst()
 	argsLen := len(os.Args)
 
 	if argsLen > 2 {
