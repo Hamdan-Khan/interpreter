@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/hamdan-khan/interpreter/errorHandler"
 	"github.com/hamdan-khan/interpreter/syntax"
 	"github.com/hamdan-khan/interpreter/token"
 )
@@ -54,17 +55,23 @@ func (p *Parser) match(toks ...token.TokenType) bool {
 	return false
 }
 
-func (p *Parser) expression() syntax.Expr {
+func (p *Parser) expression() (syntax.Expr, error) {
 	return p.equality()
 }
 
 // equality -> comparison ( ( "!=" | "==" ) comparison )*
-func (p *Parser) equality() syntax.Expr {
-	expr := p.comparison()
+func (p *Parser) equality() (syntax.Expr, error) {
+	expr, err := p.comparison()
+	if err != nil {
+		return nil, err
+	}
 
 	for p.match(token.EQUAL_EQUAL, token.NOT_EQUAL) {
 		operator := p.previous()
-		right := p.comparison()
+		right, err := p.comparison()
+		if err != nil {
+			return nil, err
+		}
 		expr = &syntax.Binary{
 			Left: expr,
 			Operator: operator,
@@ -72,16 +79,22 @@ func (p *Parser) equality() syntax.Expr {
 		}
 	}
 
-	return expr
+	return expr, nil
 }
 
 // comparison -> term ( ( ">" | ">=" | "<" | "<=" ) term )*
-func (p *Parser) comparison() syntax.Expr {
-	expr := p.term()
+func (p *Parser) comparison() (syntax.Expr, error) {
+	expr, err := p.term()
+	if err != nil {
+		return nil, err
+	}
 
 	for p.match(token.GREATER, token.GREATER_EQUAL, token.LESS, token.LESS_EQUAL) {
 		operator := p.previous()
-		right := p.term()
+		right, err := p.term()
+		if err != nil {
+			return nil, err
+		}
 		expr = &syntax.Binary{
 			Left: expr,
 			Operator: operator,
@@ -89,15 +102,21 @@ func (p *Parser) comparison() syntax.Expr {
 		}
 	}
 
-	return  expr
+	return expr, nil
 }
 
-func (p *Parser) term() syntax.Expr {
-	expr := p.factor()
+func (p *Parser) term() (syntax.Expr, error) {
+	expr, err := p.factor()
+	if err != nil {
+		return nil, err
+	}
 
 	for p.match(token.PLUS, token.MINUS) {
 		operator := p.previous()
-		right := p.factor()
+		right, err := p.factor()
+		if err != nil {
+			return nil, err
+		}
 		expr = &syntax.Binary{
 			Left: expr,
 			Operator: operator,
@@ -105,15 +124,21 @@ func (p *Parser) term() syntax.Expr {
 		}
 	}
 
-	return  expr
+	return expr, nil
 }
 
-func (p *Parser) factor() syntax.Expr {
-	expr := p.unary()
+func (p *Parser) factor() (syntax.Expr, error) {
+	expr, err := p.unary()
+	if err != nil {
+		return nil, err
+	}
 
 	for p.match(token.SLASH, token.STAR) {
 		operator := p.previous()
-		right := p.unary()
+		right, err := p.unary()
+		if err != nil {
+			return nil, err
+		}
 		expr = &syntax.Binary{
 			Left: expr,
 			Operator: operator,
@@ -121,44 +146,88 @@ func (p *Parser) factor() syntax.Expr {
 		}
 	}
 
-	return  expr
+	return expr, nil
 }
 
 // unary -> ( "!" | "-" ) unary | primary
-func (p *Parser) unary() syntax.Expr {
-	for p.match(token.EXCLAMATION, token.MINUS) {
+func (p *Parser) unary() (syntax.Expr, error) {
+	if p.match(token.EXCLAMATION, token.MINUS) {
 		operator := p.previous()
-		right := p.unary()
-		return  &syntax.Unary{
+		right, err := p.unary()
+		if err != nil {
+			return nil, err
+		}
+		return &syntax.Unary{
 			Right: right,
 			Operator: operator,
-		}
+		}, nil
 	}
 
 	return p.primary()
 }
 
 // primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")"
-func (p *Parser) primary() syntax.Expr {
+func (p *Parser) primary() (syntax.Expr, error) {
 	if p.match(token.FALSE) {
-		return &syntax.Literal{Value: false}
+		return &syntax.Literal{Value: false}, nil
 	}
 	if p.match(token.TRUE) {
-		return &syntax.Literal{Value: true}
+		return &syntax.Literal{Value: true}, nil
 	}
 	if p.match(token.NIL) {
-		return &syntax.Literal{Value: nil}
+		return &syntax.Literal{Value: nil}, nil
 	}
 	if p.match(token.STRING, token.NUMBER) {
-		return &syntax.Literal{Value: p.previous().Literal}
+		return &syntax.Literal{Value: p.previous().Literal}, nil
 	}
 	if p.match(token.LEFT_PAREN) {
-		expr := p.expression()
-		p.consume(token.RIGHT_PAREN, "Expected ')' after expression.")
-		return &syntax.Grouping{Expression: expr}
+		expr, err := p.expression()
+		if err != nil {
+			return nil, err
+		}
+		_, err = p.consume(token.RIGHT_PAREN, "Expected ')' after expression.")
+		if err != nil {
+			return nil, err
+		}
+		return &syntax.Grouping{Expression: expr}, nil
 	}
+	return nil, p.error(p.peek(), "Expected expression.")
+}
+func (p *Parser) error(tok token.Token, message string) error{
+	if (tok.TokenType == token.EOF) {
+		return errorHandler.ReportError(tok.LineNumber, "at end", message)
+	} 
+	return errorHandler.ReportError(tok.LineNumber, "at '" + tok.Lexeme + "'", message)
 }
 
-func (p *Parser) consume(token token.TokenType, message string) {
-	// todo
+func (p *Parser) consume(token token.TokenType, message string) (t token.Token, err error) {
+	if (p.check(token)) {
+		return p.advance(), nil
+	}
+
+	return t, p.error(p.peek(), message)
+}
+
+// to get to the end of the statement where the error has occured
+func (p *Parser) synchronize() {
+	p.advance()
+
+	for !p.isAtEnd() {
+		if p.previous().TokenType == token.SEMICOLON {
+			return;
+		}
+
+		switch (p.peek().TokenType) {
+			case token.FUNCTION:
+			case token.VAR:
+			case token.FOR:
+			case token.IF:
+			case token.WHILE:
+			case token.PRINT:
+			case token.RETURN:
+				return		
+		}
+
+		p.advance()
+	}
 }

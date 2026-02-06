@@ -3,6 +3,7 @@ package main
 import (
 	"strconv"
 
+	"github.com/hamdan-khan/interpreter/errorHandler"
 	"github.com/hamdan-khan/interpreter/token"
 )
 
@@ -102,7 +103,7 @@ func (s *Scanner) scanToken() {
 				}
 
 				if s.isAtEnd() {
-					ReportError(s.lineNumber, "", "Unterminated block comment.")
+					errorHandler.ReportError(s.lineNumber, "", "Unterminated block comment.")
 				}
 
 				// consume the closing * and / 
@@ -125,7 +126,7 @@ func (s *Scanner) scanToken() {
 				// an alphanum identifier shouldn't start with a digit
 				s.handleIdentifier()
 			} else {
-				ReportError(s.lineNumber, "", "Unexpected character.")
+				errorHandler.ReportError(s.lineNumber, "", "Unexpected character.")
 			}
 	}
 }
@@ -178,7 +179,7 @@ func (s *Scanner) handleNumber() {
 
 	numLiteral, err := strconv.ParseFloat(s.source[s.start: s.current], 64)
 	if err != nil {
-		ReportError(s.lineNumber, "", "Unexpected number encountered")
+		errorHandler.ReportError(s.lineNumber, "", "Unexpected number encountered")
 	}
 	s.addToken(token.NUMBER, numLiteral)
 }

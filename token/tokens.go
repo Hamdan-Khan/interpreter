@@ -48,7 +48,7 @@ const (
 
 	// misc
 	EOF
-)
+) //todo: add class token
 
 type Token struct {
 	TokenType TokenType

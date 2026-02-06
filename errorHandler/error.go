@@ -1,13 +1,12 @@
-package main
+package errorHandler
 
 import (
 	"fmt"
-	"os"
 )
 
-func ReportError(lineNumber int, location string, errorMessage string){
+func ReportError(lineNumber int, location string, errorMessage string) error {
 	fmt.Printf("[line %d] Error %s: %s \n", lineNumber, location, errorMessage)
-	os.Exit(65)
+	return fmt.Errorf("%s", errorMessage)
 }
 
 func TestError (){
