@@ -1,4 +1,4 @@
-package main
+package parser
 
 import (
 	"github.com/hamdan-khan/interpreter/errorHandler"
@@ -15,6 +15,14 @@ func NewParser(tokens []token.Token) Parser {
 	return Parser{
 		tokens: tokens,
 	}
+}
+
+func (p *Parser) Parse() syntax.Expr {
+	expr, err := p.expression()
+	if err != nil {
+		return nil
+	}
+	return expr
 }
 
 func (p *Parser) previous() token.Token {
@@ -41,7 +49,7 @@ func (p *Parser) check(tok token.TokenType) bool {
 		return false
 	}
 	return p.peek().TokenType == tok
-}
+} 
 
 // compares the given token types with the current token
 // and advances if a match is found
