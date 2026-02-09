@@ -2,6 +2,8 @@ package errorHandler
 
 import (
 	"fmt"
+
+	"github.com/hamdan-khan/interpreter/token"
 )
 
 func ReportError(lineNumber int, location string, errorMessage string) error {
@@ -9,6 +11,15 @@ func ReportError(lineNumber int, location string, errorMessage string) error {
 	return fmt.Errorf("%s", errorMessage)
 }
 
-func TestError (){
-	ReportError(10, "anywhere", "Test error")
+type RuntimeError struct {
+	Token   token.Token
+	Message string
+}
+
+func (e *RuntimeError) Error() string {
+	return e.Message
+}
+
+func NewRuntimeError(t token.Token, msg string) error {
+	return &RuntimeError{Token: t, Message: msg}
 }

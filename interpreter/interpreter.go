@@ -3,6 +3,7 @@ package interpreter
 import (
 	"fmt"
 
+	"github.com/hamdan-khan/interpreter/errorHandler"
 	"github.com/hamdan-khan/interpreter/syntax"
 	"github.com/hamdan-khan/interpreter/token"
 )
@@ -46,7 +47,11 @@ func (i *Interpreter) VisitUnaryExpr(expr *syntax.Unary) any {
 	// post order traversal (left -> right subtree of AST)
 	switch (expr.Operator.TokenType) {
 		case token.MINUS:
-			return -right.(int)
+			val, err := i.checkNumberOperand(expr.Operator, right)
+			if err != nil {
+				return err
+			}
+			return -val
 		case token.EXCLAMATION:
 			return !i.isTruthy(right)
 	}
@@ -54,28 +59,55 @@ func (i *Interpreter) VisitUnaryExpr(expr *syntax.Unary) any {
 	return nil
 }
 
-
 func (i *Interpreter) VisitBinaryExpr(expr *syntax.Binary) any {
 	left := i.evaluate(expr.Left)
 	right := i.evaluate(expr.Right)
 
 	switch (expr.Operator.TokenType) {
 		case token.MINUS:
-			return left.(int) - right.(int)
+			leftVal, rightVal, err := i.checkNumberOperands(expr.Operator, left, right)
+			if err != nil {
+				return err
+			}
+			return leftVal - rightVal
 		case token.SLASH:
-			return left.(int) / right.(int)
+			leftVal, rightVal, err := i.checkNumberOperands(expr.Operator, left, right)
+			if err != nil {
+				return err
+			}
+			return leftVal / rightVal
 		case token.STAR:
-			return left.(int) * right.(int)
+			leftVal, rightVal, err := i.checkNumberOperands(expr.Operator, left, right)
+			if err != nil {
+				return err
+			}
+			return leftVal * rightVal
 		case token.PLUS:
-			return i.executeAdd(left,right)
+			return i.executeAdd(left, right)
 		case token.GREATER:
-			return left.(int) > right.(int)
+			leftVal, rightVal, err := i.checkNumberOperands(expr.Operator, left, right)
+			if err != nil {
+				return err
+			}
+			return leftVal > rightVal
 		case token.GREATER_EQUAL:
-			return left.(int) >= right.(int)
+			leftVal, rightVal, err := i.checkNumberOperands(expr.Operator, left, right)
+			if err != nil {
+				return err
+			}
+			return leftVal >= rightVal
 		case token.LESS:
-			return left.(int) < right.(int)
+			leftVal, rightVal, err := i.checkNumberOperands(expr.Operator, left, right)
+			if err != nil {
+				return err
+			}
+			return leftVal < rightVal
 		case token.LESS_EQUAL:
-			return left.(int) <= right.(int)
+			leftVal, rightVal, err := i.checkNumberOperands(expr.Operator, left, right)
+			if err != nil {
+				return err
+			}
+			return leftVal <= rightVal
 		case token.EQUAL_EQUAL:
 			return isEqual(left,right)
 		case token.NOT_EQUAL:
@@ -111,3 +143,24 @@ func isEqual(a any, b any) bool{
 
 	return a == b
 }
+
+func (i *Interpreter) checkNumberOperand(operator token.Token, operand any) (int ,error){
+	val, ok := operand.(int)
+	if (!ok) {
+		return 0, errorHandler.NewRuntimeError(operator, "Operator must be a number")
+	}
+	return val, nil
+}
+
+func (i *Interpreter) checkNumberOperands(operator token.Token, left any, right any) (leftVal int, rightVal int, err error){
+	leftVal, lOk := left.(int)
+	rightVal, rOk := right.(int)
+	if (!lOk || !rOk) {
+		return 0, 0, errorHandler.NewRuntimeError(operator, "Operator must be a number")
+	}
+	return leftVal, rightVal, nil
+}
+
+// todo:
+// propagate error upwards to interpreter from visitor functions
+// implement error flag in base i/o function
