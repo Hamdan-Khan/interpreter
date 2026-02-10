@@ -4,11 +4,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/hamdan-khan/interpreter/interpreter"
 	"github.com/hamdan-khan/interpreter/parser"
 	"github.com/hamdan-khan/interpreter/syntax"
 )
 
-func RunFile(path string){
+func RunFile(path string) {
 	file, err := os.ReadFile(path)
 	if err != nil {
 		fmt.Printf("Error reading file: %v", err.Error())
@@ -23,13 +24,25 @@ func RunFile(path string){
 
 	tokens := scanner.tokens
 	parser := parser.NewParser(tokens)
-	expr := parser.Parse()
+	expr, parseErr := parser.Parse()
+	if parseErr != nil {
+		fmt.Printf("Error parsing expression: %v\n", parseErr)
+		os.Exit(65)
+		return;
+	}
 
 	printer := syntax.NewAstPrinter()	
-	formatted := printer.Print(expr) //todo: debug
+	formatted, printErr := printer.Print(expr)
+	if printErr != nil {
+		fmt.Printf("Error printing expression: %v\n", err)
+		os.Exit(65)
+		return
+	}
 	fmt.Printf("Expression: %v\n", formatted)
-}
 
+	interpreter := interpreter.NewInterpreter()
+	interpreter.Interpret(expr)
+}
 
 func RunPrompt (){
 	// TODO: implement REPL

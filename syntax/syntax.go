@@ -3,14 +3,14 @@ package syntax
 import "github.com/hamdan-khan/interpreter/token"
 
 type Visitor interface {
-    VisitBinaryExpr(expr *Binary) any
-    VisitGroupingExpr(expr *Grouping) any
-    VisitLiteralExpr(expr *Literal) any
-    VisitUnaryExpr(expr *Unary) any
+    VisitBinaryExpr(expr *Binary) (any, error)
+    VisitGroupingExpr(expr *Grouping) (any, error)
+    VisitLiteralExpr(expr *Literal) (any, error)
+    VisitUnaryExpr(expr *Unary) (any, error)
 }
 
 type Expr interface {
-    Accept(visitor Visitor) any
+    Accept(visitor Visitor) (any, error)
 }
 
 type Binary struct {
@@ -19,7 +19,7 @@ type Binary struct {
     Right Expr
 }
 
-func (e *Binary) Accept(visitor Visitor) any {
+func (e *Binary) Accept(visitor Visitor) (any, error) {
     return visitor.VisitBinaryExpr(e)
 }
 
@@ -27,7 +27,7 @@ type Grouping struct {
     Expression Expr
 }
 
-func (e *Grouping) Accept(visitor Visitor) any {
+func (e *Grouping) Accept(visitor Visitor) (any, error) {
     return visitor.VisitGroupingExpr(e)
 }
 
@@ -35,7 +35,7 @@ type Literal struct {
     Value any
 }
 
-func (e *Literal) Accept(visitor Visitor) any {
+func (e *Literal) Accept(visitor Visitor) (any, error) {
     return visitor.VisitLiteralExpr(e)
 }
 
@@ -44,7 +44,7 @@ type Unary struct {
     Right Expr
 }
 
-func (e *Unary) Accept(visitor Visitor) any {
+func (e *Unary) Accept(visitor Visitor) (any, error) {
     return visitor.VisitUnaryExpr(e)
 }
 

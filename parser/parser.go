@@ -17,12 +17,12 @@ func NewParser(tokens []token.Token) Parser {
 	}
 }
 
-func (p *Parser) Parse() syntax.Expr {
+func (p *Parser) Parse() (exprType syntax.Expr, err error) {
 	expr, err := p.expression()
 	if err != nil {
-		return nil
+		return exprType, err
 	}
-	return expr
+	return expr, nil
 }
 
 func (p *Parser) previous() token.Token {

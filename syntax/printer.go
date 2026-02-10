@@ -11,28 +11,31 @@ func NewAstPrinter() *AstPrinter {
 	return &AstPrinter{}
 }
 
-func (p *AstPrinter) Print(expr Expr) string {
-	result := expr.Accept(p)
-	return result.(string)
-}
-
-func (p *AstPrinter) VisitBinaryExpr(expr *Binary) any {
-	return p.parenthesize(expr.Operator.Lexeme, expr.Left, expr.Right)
-}
-
-func (p *AstPrinter) VisitGroupingExpr(expr *Grouping) any {
-	return p.parenthesize("group", expr.Expression)
-}
-
-func (p *AstPrinter) VisitLiteralExpr(expr *Literal) any {
-	if expr.Value == nil {
-		return "nil"
+func (p *AstPrinter) Print(expr Expr) (string, error) {
+	result, err := expr.Accept(p)
+	if err != nil {
+		return "", err
 	}
-	return fmt.Sprintf("%v", expr.Value)
+	return result.(string), nil
 }
 
-func (p *AstPrinter) VisitUnaryExpr(expr *Unary) any {
-	return p.parenthesize(expr.Operator.Lexeme, expr.Right)
+func (p *AstPrinter) VisitBinaryExpr(expr *Binary) (any, error) {
+	return p.parenthesize(expr.Operator.Lexeme, expr.Left, expr.Right), nil
+}
+
+func (p *AstPrinter) VisitGroupingExpr(expr *Grouping) (any, error) {
+	return p.parenthesize("group", expr.Expression), nil
+}
+
+func (p *AstPrinter) VisitLiteralExpr(expr *Literal) (any, error) {
+	if expr.Value == nil {
+		return "nil", nil
+	}
+	return fmt.Sprintf("%v", expr.Value), nil
+}
+
+func (p *AstPrinter) VisitUnaryExpr(expr *Unary) (any, error) {
+	return p.parenthesize(expr.Operator.Lexeme, expr.Right), nil
 }
 
 // parenthesize wraps expressions in Lisp-style parentheses
@@ -45,7 +48,11 @@ func (p *AstPrinter) parenthesize(name string, exprs ...Expr) string {
 
 	for _, expr := range exprs {
 		builder.WriteString(" ")
-		result := expr.Accept(p)
+		result, err := expr.Accept(p)
+		if err != nil {
+			builder.WriteString("<error>")
+			continue
+		}
 		builder.WriteString(result.(string))
 	}
 
