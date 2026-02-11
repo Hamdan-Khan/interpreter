@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"strconv"
 
 	"github.com/hamdan-khan/interpreter/errorHandler"
@@ -119,6 +120,9 @@ func (s *Scanner) scanToken() {
 		case '\n':
 			s.lineNumber++
 
+		case '"':
+			s.handleString()
+
 		default:
 			if s.isDigit(char) {
 				s.handleNumber()
@@ -126,7 +130,7 @@ func (s *Scanner) scanToken() {
 				// an alphanum identifier shouldn't start with a digit
 				s.handleIdentifier()
 			} else {
-				errorHandler.ReportError(s.lineNumber, "", "Unexpected character.")
+				errorHandler.ReportError(s.lineNumber, fmt.Sprintf("%v", string(char)), "Unexpected character.")
 			}
 	}
 }
@@ -153,6 +157,26 @@ func (s *Scanner) handleIdentifier() {
 		tokType = token.IDENTIFIER
 	}
 	s.addToken(tokType, nil)
+}
+
+func (s *Scanner) handleString() {
+	for s.next() != '"' && !s.isAtEnd() {
+		if s.next() == '\n' {
+			s.lineNumber ++
+		}
+		s.advance()
+	}
+
+	if s.isAtEnd() {
+		errorHandler.ReportError(s.lineNumber, "during scanning string", "String is not terminated")
+		return
+	}
+
+	// ending '"'
+	s.advance()
+
+	// remove the starting '"' before adding the string token
+	s.addToken(token.STRING, s.source[s.start+1:s.current-1])
 }
 
 func (s *Scanner) isDigit(c rune) bool {

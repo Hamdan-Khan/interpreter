@@ -17,18 +17,25 @@ func NewParser(tokens []token.Token) Parser {
 	}
 }
 
-func (p *Parser) Parse() (exprType syntax.Expr, err error) {
-	expr, err := p.expression()
-	if err != nil {
-		return exprType, err
+func (p *Parser) Parse() (stmtType []syntax.Stmt, e error) {
+	statements := []syntax.Stmt{};
+
+	for !p.isAtEnd() {
+		st, err := p.statement()
+		if err != nil {
+			return stmtType, err
+		}
+		statements = append(statements,st )
 	}
-	return expr, nil
+
+	return statements, nil 
 }
 
 func (p *Parser) previous() token.Token {
 	return p.tokens[p.current-1]
 }
 
+// returns next token, no side-effect
 func (p *Parser) peek() token.Token {
 	return p.tokens[p.current]
 }
@@ -44,6 +51,7 @@ func (p *Parser) advance() token.Token {
 	return p.previous()
 }
 
+// checks next token for the type passed
 func (p *Parser) check(tok token.TokenType) bool {
 	if (p.isAtEnd()){
 		return false
@@ -208,6 +216,7 @@ func (p *Parser) error(tok token.Token, message string) error{
 	return errorHandler.ReportError(tok.LineNumber, "at '" + tok.Lexeme + "'", message)
 }
 
+// checks and advances if the provided type matches with the next token 
 func (p *Parser) consume(token token.TokenType, message string) (t token.Token, err error) {
 	if (p.check(token)) {
 		return p.advance(), nil
@@ -238,4 +247,40 @@ func (p *Parser) synchronize() {
 
 		p.advance()
 	}
+}
+
+func (p *Parser) statement() (syntax.Stmt, error){
+	if p.match(token.PRINT) {
+		return p.printStatement()
+	}
+
+	return p.expressionStatement()
+}
+
+func (p *Parser) printStatement() (s syntax.Stmt, e error) {
+	expr, err := p.expression()
+	if err != nil {
+		return s, err
+	}
+
+	_, cErr := p.consume(token.SEMICOLON, "Expected ';' after expression")
+	if cErr != nil {
+		return s, cErr
+	}
+
+	return &syntax.Print{Expression: expr}, nil
+}
+
+func (p *Parser) expressionStatement() (s syntax.Stmt, e error) {
+	expr, err := p.expression()
+	if err != nil {
+		return s, err
+	}
+
+	_, cErr := p.consume(token.SEMICOLON, "Expected ';' after expression")
+	if cErr != nil {
+		return s, cErr
+	}
+
+	return &syntax.StatementExpression{Expression: expr}, nil
 }

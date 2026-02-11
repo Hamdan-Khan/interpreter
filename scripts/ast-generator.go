@@ -8,11 +8,15 @@ import (
 
 // generates ast classes
 func GenerateAst() {
-    types := []string{
-        "Binary   : left Expr, operator Token, right Expr",
-        "Grouping : expression Expr",
-        "Literal  : value any",
-        "Unary    : operator Token, right Expr",
+    // types := []string{
+    //     "Binary   : left Expr, operator Token, right Expr",
+    //     "Grouping : expression Expr",
+    //     "Literal  : value any",
+    //     "Unary    : operator Token, right Expr",
+    // }
+    statementTypes := []string{
+        "Expression : expression Expr",
+        "Print      : expression Expr",
     }
 
     var builder strings.Builder
@@ -20,14 +24,14 @@ func GenerateAst() {
     builder.WriteString("package syntax\n\n")
 
     // define visitor interface
-    defineVisitor(&builder, "Expr", types)
+    defineVisitor(&builder, "Expr", statementTypes)
 
     builder.WriteString("type Expr interface {\n")
     builder.WriteString("    Accept(visitor Visitor) any\n")
     builder.WriteString("}\n\n")
 
     // generate each concrete type
-    for _, typeStr := range types {
+    for _, typeStr := range statementTypes {
         parts := strings.Split(typeStr, ":")
         className := strings.TrimSpace(parts[0])
         fieldList := strings.TrimSpace(parts[1])
@@ -35,11 +39,11 @@ func GenerateAst() {
         defineType(&builder, className, fieldList)
     }
     
-    os.WriteFile("syntax/syntax.go", []byte(builder.String()), 0644)
+    os.WriteFile("syntax/statements.go", []byte(builder.String()), 0644)
 }
 
 func defineVisitor(builder *strings.Builder, baseName string, types []string) {
-    builder.WriteString("type Visitor interface {\n")
+    builder.WriteString("type StatementVisitor interface {\n")
 
     for _, typeStr := range types {
         typeName := strings.TrimSpace(strings.Split(typeStr, ":")[0])
@@ -68,7 +72,7 @@ func defineType(builder *strings.Builder, className, fieldList string) {
     builder.WriteString("}\n\n")
 
     // implement the Accept method (Visitor pattern)
-    fmt.Fprintf(builder, "func (e *%s) Accept(visitor Visitor) any {\n", className)
+    fmt.Fprintf(builder, "func (e *%s) Accept(visitor StatementVisitor) any {\n", className)
     fmt.Fprintf(builder, "    return visitor.Visit%sExpr(e)\n", className)
     builder.WriteString("}\n\n")
 }

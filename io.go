@@ -6,7 +6,6 @@ import (
 
 	"github.com/hamdan-khan/interpreter/interpreter"
 	"github.com/hamdan-khan/interpreter/parser"
-	"github.com/hamdan-khan/interpreter/syntax"
 )
 
 func RunFile(path string) {
@@ -24,24 +23,27 @@ func RunFile(path string) {
 
 	tokens := scanner.tokens
 	parser := parser.NewParser(tokens)
-	expr, parseErr := parser.Parse()
+	statements, parseErr := parser.Parse()
 	if parseErr != nil {
-		fmt.Printf("Error parsing expression: %v\n", parseErr)
+		fmt.Printf("Error parsing syntax: %v\n", parseErr)
 		os.Exit(65)
 		return;
 	}
 
-	printer := syntax.NewAstPrinter()	
-	formatted, printErr := printer.Print(expr)
-	if printErr != nil {
-		fmt.Printf("Error printing expression: %v\n", err)
-		os.Exit(65)
-		return
-	}
-	fmt.Printf("Expression: %v\n", formatted)
+	// printer := syntax.NewAstPrinter()	
+	// formatted, printErr := printer.Print(expr)
+	// if printErr != nil {
+	// 	fmt.Printf("Error printing expression: %v\n", err)
+	// 	os.Exit(65)
+	// 	return
+	// }
+	// fmt.Printf("Expression: %v\n", formatted)
 
 	interpreter := interpreter.NewInterpreter()
-	interpreter.Interpret(expr)
+	iError := interpreter.Interpret(statements)
+	if iError != nil {
+		fmt.Printf("Error evaluating: %v\n", iError)
+	}
 }
 
 func RunPrompt (){

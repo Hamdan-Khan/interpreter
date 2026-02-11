@@ -15,18 +15,41 @@ func NewInterpreter() *Interpreter {
 	return &Interpreter{}
 }
 
-func (i *Interpreter) Interpret(expr syntax.Expr) {
-	val, err := i.evaluate(expr)
-	if err != nil {
-
+func (i *Interpreter) Interpret(stmts []syntax.Stmt) error {
+	for _, stmt:= range stmts {
+		_, err := i.execute(stmt)
+		if err != nil {
+			return err
+		}
 	}
-	fmt.Printf("%v\n", i.stringify(val))
+	return nil
 }
 
 // recursively evaluates given expression to produce a literal
 // uses visitor pattern to implement functions for each expressions (todo: clarify)
 func (i *Interpreter) evaluate(expr syntax.Expr) (any, error) {
 	return expr.Accept(i)
+}
+
+func (i *Interpreter) execute(stmt syntax.Stmt) (any, error) {
+	return stmt.Accept(i)
+}
+
+func (i *Interpreter) VisitPrintStmt(stmt *syntax.Print) (any, error) {
+	val, err := i.evaluate(stmt.Expression)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Printf("%v\n", i.stringify(val))
+	return nil, nil
+}
+
+func (i *Interpreter) VisitExpressionStmt(stmt *syntax.StatementExpression) (any, error) {
+	_, err := i.evaluate(stmt.Expression)
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil
 }
 
 func (i *Interpreter) VisitLiteralExpr(expr *syntax.Literal) (any, error) {
