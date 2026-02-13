@@ -1,8 +1,11 @@
 package syntax
 
+import "github.com/hamdan-khan/interpreter/token"
+
 type StatementVisitor interface {
     VisitExpressionStmt(expr *StatementExpression) (any, error)
     VisitPrintStmt(expr *Print) (any, error)
+    VisitVarStmt(expr *Var) (any, error)
 }
 
 type Stmt interface {
@@ -25,3 +28,11 @@ func (e *Print) Accept(visitor StatementVisitor) (any, error) {
     return visitor.VisitPrintStmt(e)
 }
 
+type Var struct {
+    Name token.Token
+    Initializer Expr
+}
+
+func (e *Var) Accept(visitor StatementVisitor) (any, error) {
+    return visitor.VisitVarStmt(e)
+}

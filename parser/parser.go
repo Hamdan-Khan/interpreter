@@ -21,11 +21,11 @@ func (p *Parser) Parse() (stmtType []syntax.Stmt, e error) {
 	statements := []syntax.Stmt{};
 
 	for !p.isAtEnd() {
-		st, err := p.statement()
+		dec, err := p.declaration()
 		if err != nil {
 			return stmtType, err
 		}
-		statements = append(statements,st )
+		statements = append(statements, dec)
 	}
 
 	return statements, nil 
@@ -182,7 +182,7 @@ func (p *Parser) unary() (syntax.Expr, error) {
 	return p.primary()
 }
 
-// primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")"
+// primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" | IDENTIFIER
 func (p *Parser) primary() (syntax.Expr, error) {
 	if p.match(token.FALSE) {
 		return &syntax.Literal{Value: false}, nil
@@ -207,8 +207,12 @@ func (p *Parser) primary() (syntax.Expr, error) {
 		}
 		return &syntax.Grouping{Expression: expr}, nil
 	}
+	if p.match(token.IDENTIFIER) {
+		return &syntax.Variable{Name: p.previous()}, nil
+	}
 	return nil, p.error(p.peek(), "Expected expression.")
 }
+
 func (p *Parser) error(tok token.Token, message string) error{
 	if (tok.TokenType == token.EOF) {
 		return errorHandler.ReportError(tok.LineNumber, "at end", message)
@@ -247,6 +251,48 @@ func (p *Parser) synchronize() {
 
 		p.advance()
 	}
+}
+
+// declaration -> varDecl | statement ;
+func (p *Parser) declaration() (syntax.Stmt, error) {
+	if p.match(token.VAR) {
+		v, err := p.varDeclaration()
+		if err != nil {
+			p.synchronize()
+			return nil, err
+		}
+		return v, nil
+	}
+
+	s, sErr := p.statement()
+	if sErr != nil {
+		p.synchronize()
+		return nil, sErr
+	}
+	return s, nil
+}
+
+// varDecl -> "var" IDENTIFIER ( "=" expression )? ";" ;
+func (p *Parser) varDeclaration() (syntax.Stmt, error) {
+	name, err := p.consume(token.IDENTIFIER, "Expected variable name")
+	if err != nil {
+		return nil, err
+	}
+
+	var initializer syntax.Expr = nil
+	if p.match(token.EQUAL){
+		init, er := p.expression()
+		initializer = init
+		if er != nil {
+			return nil, er
+		}
+	}
+	_, sErr := p.consume(token.SEMICOLON, "Expected ';' after variable declaration")
+
+	if sErr != nil {
+		return nil, sErr
+	}
+	return &syntax.Var{Name: name, Initializer: initializer}, nil
 }
 
 func (p *Parser) statement() (syntax.Stmt, error){
