@@ -197,7 +197,7 @@ func (p *Parser) factor() (syntax.Expr, error) {
 	return expr, nil
 }
 
-// unary -> ( "!" | "-" ) unary | primary
+// unary -> ( "!" | "-" ) unary | call
 func (p *Parser) unary() (syntax.Expr, error) {
 	if p.match(token.EXCLAMATION, token.MINUS) {
 		operator := p.previous()
@@ -211,7 +211,62 @@ func (p *Parser) unary() (syntax.Expr, error) {
 		}, nil
 	}
 
-	return p.primary()
+	return p.call()
+}
+
+// call -> primary ( "(" arguments? ")" )*
+func (p *Parser) call() (syntax.Expr, error) {
+	expr, err := p.primary()
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		if p.match(token.LEFT_PAREN) {
+			expr, err = p.finishCall(expr)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			break
+		}
+	}
+
+	return expr, nil
+}
+
+// arguments -> expression ( "," expression )*
+func (p *Parser) finishCall(callee syntax.Expr) (syntax.Expr, error) {
+	args := []syntax.Expr{}
+
+	if !p.check(token.RIGHT_PAREN) {
+		for {
+			if len(args) > 255 {
+				return nil, p.error(p.peek(), "Too many arguments. (limit = 255)")
+			}
+			expr, err := p.expression()
+			if err != nil {
+				return nil, err
+			}
+			args = append(args, expr)
+
+			// if comma is not found after argument, it means the args list is consumed
+			if !p.match(token.COMMA) {
+				break
+			}
+		}
+	}
+
+	paren, err := p.consume(token.RIGHT_PAREN, "Expected ')' after arguments")
+	if err != nil {
+		return nil, err
+	}
+
+	return &syntax.Call{
+		Callee:    callee,
+		Arguments: args,
+		Paren:     paren,
+	}, nil
 }
 
 // primary -> NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" | IDENTIFIER

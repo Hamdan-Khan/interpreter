@@ -50,6 +50,13 @@ func (p *AstPrinter) VisitLogicalExpr(expr *Logical) (any, error) {
 	return p.parenthesize(expr.Operator.Lexeme, expr.Left, expr.Right), nil
 }
 
+func (p *AstPrinter) VisitCallExpr(expr *Call) (any, error) {
+	args := make([]Expr, 0, len(expr.Arguments)+1)
+	args = append(args, expr.Callee)
+	args = append(args, expr.Arguments...)
+	return p.parenthesize("call", args...), nil
+}
+
 // parenthesize wraps expressions in Lisp-style parentheses
 // for example: parenthesize("+", left, right) produces "(+ left right)"
 func (p *AstPrinter) parenthesize(name string, exprs ...Expr) string {

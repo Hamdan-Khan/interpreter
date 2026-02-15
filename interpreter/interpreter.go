@@ -3,6 +3,7 @@ package interpreter
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/hamdan-khan/interpreter/errorHandler"
 	"github.com/hamdan-khan/interpreter/syntax"
@@ -10,12 +11,23 @@ import (
 )
 
 type Interpreter struct {
+	globals     *Environment
 	environment *Environment
 }
 
 func NewInterpreter() *Interpreter {
+	globals := NewEnvironment()
+
+	globals.Define("clock", &NativeCallable{
+		fn: func(args []any) (any, error) {
+			return time.Now().UnixNano() / 1e6, nil
+		},
+		arity: 0,
+	})
+
 	return &Interpreter{
-		environment: NewEnvironment(),
+		globals:     globals,
+		environment: NewEnvironmentWithParent(globals),
 	}
 }
 
@@ -29,7 +41,7 @@ func (i *Interpreter) Interpret(stmts []syntax.Stmt) error {
 	return nil
 }
 
-// recursively evaluates given expression to produce a literal
+// recursively evaluates given expression
 // uses visitor pattern to implement functions for each expressions (todo: clarify)
 func (i *Interpreter) evaluate(expr syntax.Expr) (any, error) {
 	return expr.Accept(i)
@@ -117,6 +129,23 @@ func (i *Interpreter) VisitExpressionStmt(stmt *syntax.StatementExpression) (any
 	_, err := i.evaluate(stmt.Expression)
 	if err != nil {
 		return nil, err
+	}
+	return nil, nil
+}
+
+func (i *Interpreter) VisitWhileStmt(stmt *syntax.While) (any, error) {
+	for {
+		condition, err := i.evaluate(stmt.Condition)
+		if err != nil {
+			return nil, err
+		}
+		if !i.isTruthy(condition) {
+			break
+		}
+		_, err = i.execute(stmt.Body)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return nil, nil
 }
@@ -250,21 +279,35 @@ func (i *Interpreter) VisitLogicalExpr(expr *syntax.Logical) (any, error) {
 	return i.evaluate(expr.Right)
 }
 
-func (i *Interpreter) VisitWhileStmt(stmt *syntax.While) (any, error) {
-	for {
-		condition, err := i.evaluate(stmt.Condition)
-		if err != nil {
-			return nil, err
-		}
-		if !i.isTruthy(condition) {
-			break
-		}
-		_, err = i.execute(stmt.Body)
-		if err != nil {
-			return nil, err
-		}
+func (i *Interpreter) VisitCallExpr(expr *syntax.Call) (any, error) {
+	callee, err := i.evaluate(expr.Callee)
+	if err != nil {
+		return nil, err
 	}
-	return nil, nil
+
+	// evaluate all arguments expressions
+	args := []any{}
+	for _, arg := range expr.Arguments {
+		val, err := i.evaluate(arg)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, val)
+	}
+
+	// check if the callee is actually a function, since we have defined
+	// "primary" to be callee which includes strings, numbers, etc.
+	function, ok := callee.(Callable)
+	if !ok {
+		return nil, errorHandler.NewRuntimeError(expr.Paren, "Callee must be a function")
+	}
+
+	// arguments count must match the function's arity (expected count)
+	if len(args) != function.Arity() {
+		return nil, errorHandler.NewRuntimeError(expr.Paren, fmt.Sprintf("Expected %d arguments but got %d.", function.Arity(), len(args)))
+	}
+
+	return function.Call(i, args)
 }
 
 // executes binary expressions with + operator depending on
