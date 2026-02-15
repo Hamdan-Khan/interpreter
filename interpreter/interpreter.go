@@ -250,6 +250,23 @@ func (i *Interpreter) VisitLogicalExpr(expr *syntax.Logical) (any, error) {
 	return i.evaluate(expr.Right)
 }
 
+func (i *Interpreter) VisitWhileStmt(stmt *syntax.While) (any, error) {
+	for {
+		condition, err := i.evaluate(stmt.Condition)
+		if err != nil {
+			return nil, err
+		}
+		if !i.isTruthy(condition) {
+			break
+		}
+		_, err = i.execute(stmt.Body)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return nil, nil
+}
+
 // executes binary expressions with + operator depending on
 // the type i.e. concatenate for strings, add for numbers
 func (i *Interpreter) executeAdd(left any, right any) any {

@@ -46,6 +46,10 @@ func (p *AstPrinter) VisitVariableExpr(expr *Variable) (any, error) {
 	return expr.Name.Lexeme, nil
 }
 
+func (p *AstPrinter) VisitLogicalExpr(expr *Logical) (any, error) {
+	return p.parenthesize(expr.Operator.Lexeme, expr.Left, expr.Right), nil
+}
+
 // parenthesize wraps expressions in Lisp-style parentheses
 // for example: parenthesize("+", left, right) produces "(+ left right)"
 func (p *AstPrinter) parenthesize(name string, exprs ...Expr) string {

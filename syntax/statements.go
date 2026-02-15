@@ -8,6 +8,7 @@ type StatementVisitor interface {
 	VisitVarStmt(expr *Var) (any, error)
 	VisitBlockStmt(expr *Block) (any, error)
 	VisitIfStmt(expr *If) (any, error)
+	VisitWhileStmt(expr *While) (any, error)
 }
 
 type Stmt interface {
@@ -55,4 +56,13 @@ type If struct {
 
 func (e *If) Accept(visitor StatementVisitor) (any, error) {
 	return visitor.VisitIfStmt(e)
+}
+
+type While struct {
+	Condition Expr
+	Body      Stmt
+}
+
+func (e *While) Accept(visitor StatementVisitor) (any, error) {
+	return visitor.VisitWhileStmt(e)
 }
