@@ -71,7 +71,7 @@ func (p *Parser) match(toks ...token.TokenType) bool {
 	return false
 }
 
-// assignment -> IDENTIFIER "=" assignment | equality ;
+// assignment -> IDENTIFIER "=" assignment | logic_or ;
 func (p *Parser) assignment() (syntax.Expr, error) {
 	// how can left side (l-value) of an assignment be an expression?
 	// example: someObject(x+y).someField = 10
@@ -285,7 +285,7 @@ func (p *Parser) synchronize() {
 	}
 }
 
-// declaration -> varDecl | statement ;
+// declaration -> varDecl | statement
 func (p *Parser) declaration() (syntax.Stmt, error) {
 	if p.match(token.VAR) {
 		v, err := p.varDeclaration()
@@ -304,7 +304,7 @@ func (p *Parser) declaration() (syntax.Stmt, error) {
 	return s, nil
 }
 
-// varDecl -> "var" IDENTIFIER ( "=" expression )? ";" ;
+// varDecl -> "var" IDENTIFIER ( "=" expression )? ";"
 func (p *Parser) varDeclaration() (syntax.Stmt, error) {
 	name, err := p.consume(token.IDENTIFIER, "Expected variable name")
 	if err != nil {
@@ -327,7 +327,7 @@ func (p *Parser) varDeclaration() (syntax.Stmt, error) {
 	return &syntax.Var{Name: name, Initializer: initializer}, nil
 }
 
-// statement -> exprStmt | printStmt | block ;
+// statement -> exprStmt | printStmt | block
 func (p *Parser) statement() (syntax.Stmt, error) {
 	if p.match(token.PRINT) {
 		return p.printStatement()
@@ -339,11 +339,13 @@ func (p *Parser) statement() (syntax.Stmt, error) {
 		}
 		return &syntax.Block{Statements: blockStatements}, nil
 	}
-
+	if p.match(token.IF) {
+		return p.ifStatement()
+	}
 	return p.expressionStatement()
 }
 
-// block -> "{" declaration* "}" ;
+// block -> "{" declaration* "}"
 func (p *Parser) blockStatement() (s []syntax.Stmt, e error) {
 	statements := []syntax.Stmt{}
 
@@ -389,4 +391,85 @@ func (p *Parser) expressionStatement() (s syntax.Stmt, e error) {
 	}
 
 	return &syntax.StatementExpression{Expression: expr}, nil
+}
+
+// ifStmt -> "if" "(" expression ")" statement ( "else" statement )?
+func (p *Parser) ifStatement() (s syntax.Stmt, e error) {
+	_, err := p.consume(token.LEFT_PAREN, "Expected '(' after 'if'")
+	if err != nil {
+		return nil, err
+	}
+
+	condition, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.consume(token.RIGHT_PAREN, "Expected ')' after condition")
+	if err != nil {
+		return nil, err
+	}
+
+	thenBranch, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	// in case of nested if's and one else branch the innermost if
+	// will be associated with the else branch (dangling else problem)
+	var elseBranch syntax.Stmt = nil
+	if p.match(token.ELSE) {
+		elseBranch, err = p.statement()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &syntax.If{Condition: condition, ThenBranch: thenBranch, ElseBranch: elseBranch}, nil
+}
+
+// logic_or -> logic_and ( "or" logic_and )*
+func (p *Parser) or() (syntax.Expr, error) {
+	expr, err := p.and()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(token.OR) {
+		operator := p.previous()
+		right, err := p.and()
+		if err != nil {
+			return nil, err
+		}
+		expr = &syntax.Logical{
+			Left:     expr,
+			Operator: operator,
+			Right:    right,
+		}
+	}
+
+	return expr, nil
+}
+
+// logic_and -> equality ( "and" equality )*
+func (p *Parser) and() (syntax.Expr, error) {
+	expr, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(token.AND) {
+		operator := p.previous()
+		right, err := p.equality()
+		if err != nil {
+			return nil, err
+		}
+		expr = &syntax.Logical{
+			Left:     expr,
+			Operator: operator,
+			Right:    right,
+		}
+	}
+
+	return expr, nil
 }

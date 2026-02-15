@@ -91,6 +91,19 @@ func (i *Interpreter) VisitAssignExpr(expr *syntax.Assign) (any, error) {
 	return val, nil
 }
 
+func (i *Interpreter) VisitIfStmt(stmt *syntax.If) (any, error) {
+	condition, err := i.evaluate(stmt.Condition)
+	if err != nil {
+		return nil, err
+	}
+	if i.isTruthy(condition) {
+		return i.execute(stmt.ThenBranch)
+	} else if stmt.ElseBranch != nil {
+		return i.execute(stmt.ElseBranch)
+	}
+	return nil, nil
+}
+
 func (i *Interpreter) VisitPrintStmt(stmt *syntax.Print) (any, error) {
 	val, err := i.evaluate(stmt.Expression)
 	if err != nil {
@@ -213,6 +226,28 @@ func (i *Interpreter) VisitBinaryExpr(expr *syntax.Binary) (any, error) {
 	}
 
 	return nil, nil
+}
+
+func (i *Interpreter) VisitLogicalExpr(expr *syntax.Logical) (any, error) {
+	left, err := i.evaluate(expr.Left)
+	if err != nil {
+		return nil, err
+	}
+
+	// short circuit evaluation (jump ahead):
+	// for "or", if the left operand is truthy, we don't evaluate the right operand
+	// for "and", if the left operand is falsy, we don't evaluate the right operand
+	if expr.Operator.TokenType == token.OR {
+		if i.isTruthy(left) {
+			return left, nil
+		}
+	} else {
+		if !i.isTruthy(left) {
+			return left, nil
+		}
+	}
+
+	return i.evaluate(expr.Right)
 }
 
 // executes binary expressions with + operator depending on
