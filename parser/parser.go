@@ -327,12 +327,40 @@ func (p *Parser) varDeclaration() (syntax.Stmt, error) {
 	return &syntax.Var{Name: name, Initializer: initializer}, nil
 }
 
+// statement -> exprStmt | printStmt | block ;
 func (p *Parser) statement() (syntax.Stmt, error) {
 	if p.match(token.PRINT) {
 		return p.printStatement()
 	}
+	if p.match(token.LEFT_BRACE) {
+		blockStatements, err := p.blockStatement()
+		if err != nil {
+			return nil, err
+		}
+		return &syntax.Block{Statements: blockStatements}, nil
+	}
 
 	return p.expressionStatement()
+}
+
+// block -> "{" declaration* "}" ;
+func (p *Parser) blockStatement() (s []syntax.Stmt, e error) {
+	statements := []syntax.Stmt{}
+
+	for !p.check(token.RIGHT_BRACE) && !p.isAtEnd() {
+		stmt, err := p.declaration()
+		if err != nil {
+			p.synchronize()
+			return nil, err
+		}
+		statements = append(statements, stmt)
+	}
+
+	_, cErr := p.consume(token.RIGHT_BRACE, "Expected '}' after block")
+	if cErr != nil {
+		return nil, cErr
+	}
+	return statements, nil
 }
 
 func (p *Parser) printStatement() (s syntax.Stmt, e error) {

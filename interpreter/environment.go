@@ -7,11 +7,24 @@ import (
 
 type Environment struct {
 	values map[string]any
+	// parent-pointer tree (for parent environemnt scope)
+	// also called the "cactus stack"
+	parent *Environment
 }
 
+// for global scope
 func NewEnvironment() *Environment {
 	return &Environment{
 		values: make(map[string]any),
+		parent: nil,
+	}
+}
+
+// for local scope
+func NewEnvironmentWithParent(parent *Environment) *Environment {
+	return &Environment{
+		values: make(map[string]any),
+		parent: parent,
 	}
 }
 
@@ -23,7 +36,11 @@ func (e *Environment) Get(token token.Token) (any, error) {
 	if value, ok := e.values[token.Lexeme]; ok {
 		return value, nil
 	}
-	return nil, errorHandler.ReportError(token.LineNumber, "undefined variable", "Variable "+token.Lexeme+" is not defined.")
+	// local scopes can check parent scopes for variables recursively
+	if e.parent != nil {
+		return e.parent.Get(token)
+	}
+	return nil, errorHandler.NewRuntimeError(token, "Undefined variable")
 }
 
 func (e *Environment) Assign(token token.Token, value any) error {
@@ -33,6 +50,9 @@ func (e *Environment) Assign(token token.Token, value any) error {
 		e.values[token.Lexeme] = value
 		return nil
 	}
-	//todo: runtime error
-	return errorHandler.ReportError(token.LineNumber, "undefined variable", "Variable "+token.Lexeme+" is not defined.")
+	// local scopes can check parent scopes for variables recursively
+	if e.parent != nil {
+		return e.parent.Assign(token, value)
+	}
+	return errorHandler.NewRuntimeError(token, "Undefined variable")
 }

@@ -39,6 +39,28 @@ func (i *Interpreter) execute(stmt syntax.Stmt) (any, error) {
 	return stmt.Accept(i)
 }
 
+func (i *Interpreter) VisitBlockStmt(stmt *syntax.Block) (any, error) {
+	err := i.executeBlock(stmt.Statements, NewEnvironmentWithParent(i.environment))
+	return nil, err
+}
+
+// executes a block of statements in a new environment
+func (i *Interpreter) executeBlock(statements []syntax.Stmt, environment *Environment) error {
+	// store the parent environment temporarily
+	var prev *Environment = i.environment
+	// set the interpreter's environment to the new one for block execution
+	i.environment = environment
+	for _, stmt := range statements {
+		_, err := i.execute(stmt)
+		if err != nil {
+			return err
+		}
+	}
+	// restore the parent environment
+	i.environment = prev
+	return nil
+}
+
 func (i *Interpreter) VisitVarStmt(stmt *syntax.Var) (any, error) {
 	// if initializer ( "=" expression ) is absent, value is nil
 	var val any = nil

@@ -38,6 +38,14 @@ func (p *AstPrinter) VisitUnaryExpr(expr *Unary) (any, error) {
 	return p.parenthesize(expr.Operator.Lexeme, expr.Right), nil
 }
 
+func (p *AstPrinter) VisitAssignExpr(expr *Assign) (any, error) {
+	return p.parenthesize("=", expr, expr.Value), nil
+}
+
+func (p *AstPrinter) VisitVariableExpr(expr *Variable) (any, error) {
+	return expr.Name.Lexeme, nil
+}
+
 // parenthesize wraps expressions in Lisp-style parentheses
 // for example: parenthesize("+", left, right) produces "(+ left right)"
 func (p *AstPrinter) parenthesize(name string, exprs ...Expr) string {
