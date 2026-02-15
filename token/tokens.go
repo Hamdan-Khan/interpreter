@@ -5,7 +5,7 @@ type TokenType int
 const (
 	// single char tokens
 	LEFT_PAREN TokenType = iota
-    RIGHT_PAREN
+	RIGHT_PAREN
 	LEFT_BRACE
 	RIGHT_BRACE
 	COMMA
@@ -51,25 +51,24 @@ const (
 ) //todo: add class token
 
 type Token struct {
-	TokenType TokenType
-	Lexeme string
+	TokenType  TokenType
+	Lexeme     string
 	LineNumber int
-	Literal any
+	Literal    any
 }
 
-
 var ReservedKeywords = map[string]TokenType{
-	"and": AND,
-    "else": ELSE,
-    "false": FALSE,
-    "for": FOR,
-    "fun": FUNCTION,
-    "if": IF,
-    "nil": NIL,
-    "or": OR,
-    "print": PRINT,
-    "return": RETURN,
-    "true": TRUE,
-    "var": VAR,
-    "while": WHILE,
+	"and":    AND,
+	"else":   ELSE,
+	"false":  FALSE,
+	"for":    FOR,
+	"fun":    FUNCTION,
+	"if":     IF,
+	"nil":    NIL,
+	"or":     OR,
+	"print":  PRINT,
+	"return": RETURN,
+	"true":   TRUE,
+	"var":    VAR,
+	"while":  WHILE,
 }

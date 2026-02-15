@@ -7,7 +7,7 @@ import (
 )
 
 type Parser struct {
-	tokens []token.Token
+	tokens  []token.Token
 	current int
 }
 
@@ -18,7 +18,7 @@ func NewParser(tokens []token.Token) Parser {
 }
 
 func (p *Parser) Parse() (stmtType []syntax.Stmt, e error) {
-	statements := []syntax.Stmt{};
+	statements := []syntax.Stmt{}
 
 	for !p.isAtEnd() {
 		dec, err := p.declaration()
@@ -28,7 +28,7 @@ func (p *Parser) Parse() (stmtType []syntax.Stmt, e error) {
 		statements = append(statements, dec)
 	}
 
-	return statements, nil 
+	return statements, nil
 }
 
 func (p *Parser) previous() token.Token {
@@ -45,24 +45,24 @@ func (p *Parser) isAtEnd() bool {
 }
 
 func (p *Parser) advance() token.Token {
-	if (!p.isAtEnd()) {
-		p.current ++
+	if !p.isAtEnd() {
+		p.current++
 	}
 	return p.previous()
 }
 
 // checks next token for the type passed
 func (p *Parser) check(tok token.TokenType) bool {
-	if (p.isAtEnd()){
+	if p.isAtEnd() {
 		return false
 	}
 	return p.peek().TokenType == tok
-} 
+}
 
 // compares the given token types with the current token
 // and advances if a match is found
 func (p *Parser) match(toks ...token.TokenType) bool {
-	for _, t := range toks{
+	for _, t := range toks {
 		if p.check(t) {
 			p.advance() // advance in case of a matching token type
 			return true
@@ -71,8 +71,40 @@ func (p *Parser) match(toks ...token.TokenType) bool {
 	return false
 }
 
+// assignment -> IDENTIFIER "=" assignment | equality ;
+func (p *Parser) assignment() (syntax.Expr, error) {
+	// how can left side (l-value) of an assignment be an expression?
+	// example: someObject(x+y).someField = 10
+	// does this mean any expression can be an assignment target?
+	// no, only variables can be assignment targets which we later validate
+	expr, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.match(token.EQUAL) {
+		operator := p.previous()
+		right, err := p.assignment()
+
+		if err != nil {
+			return nil, err
+		}
+
+		if expr, ok := expr.(*syntax.Variable); ok {
+			return &syntax.Assign{
+				Name:  expr.Name,
+				Value: right,
+			}, nil
+		}
+		return nil, p.error(operator, "Invalid assignment target.")
+	}
+
+	return expr, nil
+}
+
+// expression -> assignment ;
 func (p *Parser) expression() (syntax.Expr, error) {
-	return p.equality()
+	return p.assignment()
 }
 
 // equality -> comparison ( ( "!=" | "==" ) comparison )*
@@ -89,9 +121,9 @@ func (p *Parser) equality() (syntax.Expr, error) {
 			return nil, err
 		}
 		expr = &syntax.Binary{
-			Left: expr,
+			Left:     expr,
 			Operator: operator,
-			Right: right,
+			Right:    right,
 		}
 	}
 
@@ -112,9 +144,9 @@ func (p *Parser) comparison() (syntax.Expr, error) {
 			return nil, err
 		}
 		expr = &syntax.Binary{
-			Left: expr,
+			Left:     expr,
 			Operator: operator,
-			Right: right,
+			Right:    right,
 		}
 	}
 
@@ -134,9 +166,9 @@ func (p *Parser) term() (syntax.Expr, error) {
 			return nil, err
 		}
 		expr = &syntax.Binary{
-			Left: expr,
+			Left:     expr,
 			Operator: operator,
-			Right: right,
+			Right:    right,
 		}
 	}
 
@@ -156,9 +188,9 @@ func (p *Parser) factor() (syntax.Expr, error) {
 			return nil, err
 		}
 		expr = &syntax.Binary{
-			Left: expr,
+			Left:     expr,
 			Operator: operator,
-			Right: right,
+			Right:    right,
 		}
 	}
 
@@ -174,7 +206,7 @@ func (p *Parser) unary() (syntax.Expr, error) {
 			return nil, err
 		}
 		return &syntax.Unary{
-			Right: right,
+			Right:    right,
 			Operator: operator,
 		}, nil
 	}
@@ -213,16 +245,16 @@ func (p *Parser) primary() (syntax.Expr, error) {
 	return nil, p.error(p.peek(), "Expected expression.")
 }
 
-func (p *Parser) error(tok token.Token, message string) error{
-	if (tok.TokenType == token.EOF) {
+func (p *Parser) error(tok token.Token, message string) error {
+	if tok.TokenType == token.EOF {
 		return errorHandler.ReportError(tok.LineNumber, "at end", message)
-	} 
-	return errorHandler.ReportError(tok.LineNumber, "at '" + tok.Lexeme + "'", message)
+	}
+	return errorHandler.ReportError(tok.LineNumber, "at '"+tok.Lexeme+"'", message)
 }
 
-// checks and advances if the provided type matches with the next token 
+// checks and advances if the provided type matches with the next token
 func (p *Parser) consume(token token.TokenType, message string) (t token.Token, err error) {
-	if (p.check(token)) {
+	if p.check(token) {
 		return p.advance(), nil
 	}
 
@@ -235,18 +267,18 @@ func (p *Parser) synchronize() {
 
 	for !p.isAtEnd() {
 		if p.previous().TokenType == token.SEMICOLON {
-			return;
+			return
 		}
 
-		switch (p.peek().TokenType) {
-			case token.FUNCTION:
-			case token.VAR:
-			case token.FOR:
-			case token.IF:
-			case token.WHILE:
-			case token.PRINT:
-			case token.RETURN:
-				return		
+		switch p.peek().TokenType {
+		case token.FUNCTION:
+		case token.VAR:
+		case token.FOR:
+		case token.IF:
+		case token.WHILE:
+		case token.PRINT:
+		case token.RETURN:
+			return
 		}
 
 		p.advance()
@@ -280,12 +312,12 @@ func (p *Parser) varDeclaration() (syntax.Stmt, error) {
 	}
 
 	var initializer syntax.Expr = nil
-	if p.match(token.EQUAL){
+	if p.match(token.EQUAL) {
 		init, er := p.expression()
-		initializer = init
 		if er != nil {
 			return nil, er
 		}
+		initializer = init
 	}
 	_, sErr := p.consume(token.SEMICOLON, "Expected ';' after variable declaration")
 
@@ -295,7 +327,7 @@ func (p *Parser) varDeclaration() (syntax.Stmt, error) {
 	return &syntax.Var{Name: name, Initializer: initializer}, nil
 }
 
-func (p *Parser) statement() (syntax.Stmt, error){
+func (p *Parser) statement() (syntax.Stmt, error) {
 	if p.match(token.PRINT) {
 		return p.printStatement()
 	}

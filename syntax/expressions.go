@@ -3,56 +3,69 @@ package syntax
 import "github.com/hamdan-khan/interpreter/token"
 
 type Visitor interface {
-    VisitBinaryExpr(expr *Binary) (any, error)
-    VisitGroupingExpr(expr *Grouping) (any, error)
-    VisitLiteralExpr(expr *Literal) (any, error)
-    VisitUnaryExpr(expr *Unary) (any, error)
-    VisitVariableExpr(expr *Variable) (any, error)
+	VisitBinaryExpr(expr *Binary) (any, error)
+	VisitGroupingExpr(expr *Grouping) (any, error)
+	VisitLiteralExpr(expr *Literal) (any, error)
+	VisitUnaryExpr(expr *Unary) (any, error)
+	VisitVariableExpr(expr *Variable) (any, error)
+	VisitAssignExpr(expr *Assign) (any, error)
 }
 
 type Expr interface {
-    Accept(visitor Visitor) (any, error)
+	Accept(visitor Visitor) (any, error)
 }
 
 type Binary struct {
-    Left Expr
-    Operator token.Token
-    Right Expr
+	Left     Expr
+	Operator token.Token
+	Right    Expr
 }
 
 func (e *Binary) Accept(visitor Visitor) (any, error) {
-    return visitor.VisitBinaryExpr(e)
+	return visitor.VisitBinaryExpr(e)
 }
 
 type Grouping struct {
-    Expression Expr
+	Expression Expr
 }
 
 func (e *Grouping) Accept(visitor Visitor) (any, error) {
-    return visitor.VisitGroupingExpr(e)
+	return visitor.VisitGroupingExpr(e)
 }
 
 type Literal struct {
-    Value any
+	Value any
 }
 
 func (e *Literal) Accept(visitor Visitor) (any, error) {
-    return visitor.VisitLiteralExpr(e)
+	return visitor.VisitLiteralExpr(e)
 }
 
 type Unary struct {
-    Operator token.Token
-    Right Expr
+	Operator token.Token
+	Right    Expr
 }
 
 func (e *Unary) Accept(visitor Visitor) (any, error) {
-    return visitor.VisitUnaryExpr(e)
+	return visitor.VisitUnaryExpr(e)
 }
 
 type Variable struct {
-    Name token.Token
+	Name token.Token
 }
 
 func (e *Variable) Accept(visitor Visitor) (any, error) {
-    return visitor.VisitVariableExpr(e)
+	return visitor.VisitVariableExpr(e)
+}
+
+// why assignment as expression?
+// design choice, assignment can be statement too (like in python), in our case
+// it can be nested inside a larger expression, or cases like a = b = 10
+type Assign struct {
+	Name  token.Token
+	Value Expr
+}
+
+func (e *Assign) Accept(visitor Visitor) (any, error) {
+	return visitor.VisitAssignExpr(e)
 }
