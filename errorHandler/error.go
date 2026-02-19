@@ -23,3 +23,15 @@ func (e *RuntimeError) Error() string {
 func NewRuntimeError(t token.Token, msg string) error {
 	return &RuntimeError{Token: t, Message: msg}
 }
+
+type Return struct {
+	Value any
+}
+
+func (e *Return) Error() string {
+	return ""
+}
+
+func NewReturn(value any) error {
+	return &Return{Value: value}
+}

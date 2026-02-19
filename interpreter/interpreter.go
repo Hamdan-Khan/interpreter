@@ -59,7 +59,13 @@ func (i *Interpreter) VisitBlockStmt(stmt *syntax.Block) (any, error) {
 // executes a block of statements in a new environment
 func (i *Interpreter) executeBlock(statements []syntax.Stmt, environment *Environment) error {
 	// store the parent environment temporarily
-	var prev *Environment = i.environment
+	prev := i.environment
+
+	// restore the parent environment
+	defer func() {
+		i.environment = prev
+	}()
+
 	// set the interpreter's environment to the new one for block execution
 	i.environment = environment
 	for _, stmt := range statements {
@@ -68,8 +74,6 @@ func (i *Interpreter) executeBlock(statements []syntax.Stmt, environment *Enviro
 			return err
 		}
 	}
-	// restore the parent environment
-	i.environment = prev
 	return nil
 }
 
@@ -148,6 +152,24 @@ func (i *Interpreter) VisitWhileStmt(stmt *syntax.While) (any, error) {
 		}
 	}
 	return nil, nil
+}
+
+func (i *Interpreter) VisitFunctionStmt(stmt *syntax.Function) (any, error) {
+	fn := &Function{Declaration: stmt}
+	i.environment.Define(stmt.Name.Lexeme, fn)
+	return nil, nil
+}
+
+func (i *Interpreter) VisitReturnStmt(stmt *syntax.Return) (any, error) {
+	var val any = nil
+	var err error
+	if stmt.Value != nil {
+		val, err = i.evaluate(stmt.Value)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return nil, errorHandler.NewReturn(val)
 }
 
 func (i *Interpreter) VisitLiteralExpr(expr *syntax.Literal) (any, error) {

@@ -9,6 +9,8 @@ type StatementVisitor interface {
 	VisitBlockStmt(expr *Block) (any, error)
 	VisitIfStmt(expr *If) (any, error)
 	VisitWhileStmt(expr *While) (any, error)
+	VisitFunctionStmt(expr *Function) (any, error)
+	VisitReturnStmt(expr *Return) (any, error)
 }
 
 type Stmt interface {
@@ -65,4 +67,23 @@ type While struct {
 
 func (e *While) Accept(visitor StatementVisitor) (any, error) {
 	return visitor.VisitWhileStmt(e)
+}
+
+type Function struct {
+	Name   token.Token
+	Params []token.Token
+	Body   []Stmt
+}
+
+func (e *Function) Accept(visitor StatementVisitor) (any, error) {
+	return visitor.VisitFunctionStmt(e)
+}
+
+type Return struct {
+	Keyword token.Token
+	Value   Expr
+}
+
+func (e *Return) Accept(visitor StatementVisitor) (any, error) {
+	return visitor.VisitReturnStmt(e)
 }

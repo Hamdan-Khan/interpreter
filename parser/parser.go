@@ -241,7 +241,7 @@ func (p *Parser) finishCall(callee syntax.Expr) (syntax.Expr, error) {
 
 	if !p.check(token.RIGHT_PAREN) {
 		for {
-			if len(args) > 255 {
+			if len(args) >= 255 {
 				return nil, p.error(p.peek(), "Too many arguments. (limit = 255)")
 			}
 			expr, err := p.expression()
@@ -340,8 +340,18 @@ func (p *Parser) synchronize() {
 	}
 }
 
-// declaration -> varDecl | statement
+// statements stuff
+
+// declaration -> funcDecl | varDecl | statement
 func (p *Parser) declaration() (syntax.Stmt, error) {
+	if p.match(token.FUNCTION) {
+		f, err := p.function("function")
+		if err != nil {
+			p.synchronize()
+			return nil, err
+		}
+		return f, nil
+	}
 	if p.match(token.VAR) {
 		v, err := p.varDeclaration()
 		if err != nil {
@@ -357,6 +367,39 @@ func (p *Parser) declaration() (syntax.Stmt, error) {
 		return nil, sErr
 	}
 	return s, nil
+}
+
+// function -> IDENTIFIER "(" parameters? ")" block
+func (p *Parser) function(kind string) (syntax.Stmt, error) {
+	name, err := p.consume(token.IDENTIFIER, "Expected "+kind+" name")
+	if err != nil {
+		return nil, err
+	}
+	p.consume(token.LEFT_PAREN, "Expected '(' after "+kind+" name")
+	parameters := []token.Token{}
+	if !p.check(token.RIGHT_PAREN) {
+		for {
+			if len(parameters) >= 255 {
+				return nil, p.error(p.peek(), "Too many parameters. (limit = 255)")
+			}
+			paramName, err := p.consume(token.IDENTIFIER, "Expected parameter name")
+			if err != nil {
+				return nil, err
+			}
+			parameters = append(parameters, paramName)
+			if !p.match(token.COMMA) {
+				break
+			}
+		}
+	}
+	p.consume(token.RIGHT_PAREN, "Expected ')' after parameters")
+
+	p.consume(token.LEFT_BRACE, "Expected '{' before "+kind+" body")
+	body, err := p.blockStatement()
+	if err != nil {
+		return nil, err
+	}
+	return &syntax.Function{Name: name, Params: parameters, Body: body}, nil
 }
 
 // varDecl -> "var" IDENTIFIER ( "=" expression )? ";"
@@ -382,10 +425,13 @@ func (p *Parser) varDeclaration() (syntax.Stmt, error) {
 	return &syntax.Var{Name: name, Initializer: initializer}, nil
 }
 
-// statement -> exprStmt | ifStmt | printStmt | whileStmt | block
+// statement -> exprStmt | ifStmt | printStmt | whileStmt | block | returnStmt
 func (p *Parser) statement() (syntax.Stmt, error) {
 	if p.match(token.PRINT) {
 		return p.printStatement()
+	}
+	if p.match(token.RETURN) {
+		return p.returnStatement()
 	}
 	if p.match(token.WHILE) {
 		return p.whileStatement()
@@ -404,6 +450,25 @@ func (p *Parser) statement() (syntax.Stmt, error) {
 		return p.ifStatement()
 	}
 	return p.expressionStatement()
+}
+
+func (p *Parser) returnStatement() (syntax.Stmt, error) {
+	keyword := p.previous()
+	var value syntax.Expr = nil
+	// if next token after return keyword is not a semicolon,
+	// it means we're returning some value
+	if !p.check(token.SEMICOLON) {
+		val, err := p.expression()
+		if err != nil {
+			return nil, err
+		}
+		value = val
+	}
+	_, err := p.consume(token.SEMICOLON, "Expected ';' after return")
+	if err != nil {
+		return nil, err
+	}
+	return &syntax.Return{Keyword: keyword, Value: value}, nil
 }
 
 // syntax desugaring - converting "for" loop into "while" loop
@@ -558,7 +623,7 @@ func (p *Parser) expressionStatement() (s syntax.Stmt, e error) {
 		return s, err
 	}
 
-	_, cErr := p.consume(token.SEMICOLON, "Expected ';' after expression")
+	_, cErr := p.consume(token.SEMICOLON, "Expected ';' after expression!")
 	if cErr != nil {
 		return s, cErr
 	}
