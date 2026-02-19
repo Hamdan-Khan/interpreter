@@ -7,11 +7,16 @@ import (
 
 type Function struct {
 	Declaration *syntax.Function
+	Closure     *Environment // surrounding environment in which the function is declared
+}
+
+func NewFunction(declaration *syntax.Function, closure *Environment) *Function {
+	return &Function{Declaration: declaration, Closure: closure}
 }
 
 func (f *Function) Call(interpreter *Interpreter, arguments []any) (any, error) {
 	// environment local to the called function with all the function's arguments
-	env := NewEnvironmentWithParent(interpreter.environment)
+	env := NewEnvironmentWithParent(f.Closure)
 
 	for i, param := range f.Declaration.Params {
 		env.Define(param.Lexeme, arguments[i])

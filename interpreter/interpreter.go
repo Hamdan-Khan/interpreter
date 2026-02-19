@@ -155,7 +155,8 @@ func (i *Interpreter) VisitWhileStmt(stmt *syntax.While) (any, error) {
 }
 
 func (i *Interpreter) VisitFunctionStmt(stmt *syntax.Function) (any, error) {
-	fn := &Function{Declaration: stmt}
+	// create a function object with the current environment as its closure
+	fn := NewFunction(stmt, i.environment)
 	i.environment.Define(stmt.Name.Lexeme, fn)
 	return nil, nil
 }
