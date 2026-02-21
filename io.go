@@ -27,31 +27,31 @@ func RunFile(path string) {
 	if parseErr != nil {
 		fmt.Printf("Error parsing syntax: %v\n", parseErr)
 		os.Exit(65)
-		return;
+		return
 	}
 
-	// printer := syntax.NewAstPrinter()	
-	// formatted, printErr := printer.Print(expr)
-	// if printErr != nil {
-	// 	fmt.Printf("Error printing expression: %v\n", err)
-	// 	os.Exit(65)
-	// 	return
-	// }
-	// fmt.Printf("Expression: %v\n", formatted)
+	i := interpreter.NewInterpreter()
 
-	interpreter := interpreter.NewInterpreter()
-	iError := interpreter.Interpret(statements)
+	resolver := interpreter.NewResolver(i)
+	rErr := resolver.ResolveStmts(statements)
+	if rErr != nil {
+		fmt.Printf("Error resolving: %v\n", rErr)
+		os.Exit(65)
+		return
+	}
+
+	iError := i.Interpret(statements)
 	if iError != nil {
 		fmt.Printf("Error evaluating: %v\n", iError)
 	}
 }
 
-func RunPrompt (){
+func RunPrompt() {
 	// TODO: implement REPL
-	var input string 
+	var input string
 	for {
 		println("Write script here:\n>>")
-		// todo: replace with bufio.Scanner 
+		// todo: replace with bufio.Scanner
 		fmt.Scanln(&input)
 		if input == "q" {
 			fmt.Println("Quitting interpreter")

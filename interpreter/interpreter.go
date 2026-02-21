@@ -13,6 +13,7 @@ import (
 type Interpreter struct {
 	globals     *Environment
 	environment *Environment
+	locals      map[syntax.Expr]int
 }
 
 func NewInterpreter() *Interpreter {
@@ -28,7 +29,12 @@ func NewInterpreter() *Interpreter {
 	return &Interpreter{
 		globals:     globals,
 		environment: NewEnvironmentWithParent(globals),
+		locals:      make(map[syntax.Expr]int),
 	}
+}
+
+func (i *Interpreter) resolve(expr syntax.Expr, depth int) {
+	i.locals[expr] = depth
 }
 
 func (i *Interpreter) Interpret(stmts []syntax.Stmt) error {
@@ -92,7 +98,16 @@ func (i *Interpreter) VisitVarStmt(stmt *syntax.Var) (any, error) {
 }
 
 func (i *Interpreter) VisitVariableExpr(expr *syntax.Variable) (any, error) {
-	return i.environment.Get(expr.Name)
+	return i.lookupVariable(expr.Name, expr)
+}
+
+func (i *Interpreter) lookupVariable(name token.Token, expr syntax.Expr) (any, error) {
+	distance, ok := i.locals[expr]
+	// if it has a depth in the local map, it is a local variable, otherwise a global one
+	if ok {
+		return i.environment.GetAt(distance, name.Lexeme)
+	}
+	return i.globals.Get(name)
 }
 
 func (i *Interpreter) VisitAssignExpr(expr *syntax.Assign) (any, error) {
@@ -100,9 +115,12 @@ func (i *Interpreter) VisitAssignExpr(expr *syntax.Assign) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = i.environment.Assign(expr.Name, val)
-	if err != nil {
-		return nil, err
+
+	distance, ok := i.locals[expr]
+	if ok {
+		i.environment.AssignAt(distance, expr.Name, val)
+	} else {
+		i.globals.Assign(expr.Name, val)
 	}
 	return val, nil
 }

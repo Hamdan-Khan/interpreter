@@ -54,5 +54,22 @@ func (e *Environment) Assign(token token.Token, value any) error {
 	if e.parent != nil {
 		return e.parent.Assign(token, value)
 	}
-	return errorHandler.NewRuntimeError(token, "Undefined variable")
+	return errorHandler.NewRuntimeError(token, "Undefined variable!")
+}
+
+func (e *Environment) GetAt(distance int, name string) (any, error) {
+	return e.ancestor(distance).values[name], nil
+}
+
+func (e *Environment) ancestor(distance int) *Environment {
+	env := e
+	// move up the parent chain "distance" times
+	for range distance {
+		env = env.parent
+	}
+	return env
+}
+
+func (e *Environment) AssignAt(distance int, name token.Token, value any) {
+	e.ancestor(distance).values[name.Lexeme] = value
 }
