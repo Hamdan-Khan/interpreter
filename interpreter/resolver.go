@@ -93,9 +93,11 @@ func (r *Resolver) define(name token.Token) {
 }
 
 func (r *Resolver) VisitVariableExpr(expr *syntax.Variable) (any, error) {
-	if len(r.scopes) != 0 && r.scopes[len(r.scopes)-1][expr.Name.Lexeme] == false {
-		err := errorHandler.ReportError(expr.Name.LineNumber, "", "Cannot read local variable in its own initializer.")
-		return nil, err
+	if len(r.scopes) != 0 {
+		if defined, ok := r.scopes[len(r.scopes)-1][expr.Name.Lexeme]; ok && !defined {
+			err := errorHandler.ReportError(expr.Name.LineNumber, "", "Cannot read local variable in its own initializer.")
+			return nil, err
+		}
 	}
 
 	r.resolveLocal(expr, expr.Name)
