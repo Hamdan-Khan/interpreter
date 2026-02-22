@@ -5,7 +5,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hamdan-khan/interpreter/errorHandler"
 	"github.com/hamdan-khan/interpreter/syntax"
 	"github.com/hamdan-khan/interpreter/token"
 )
@@ -28,7 +27,7 @@ func NewInterpreter() *Interpreter {
 
 	return &Interpreter{
 		globals:     globals,
-		environment: NewEnvironmentWithParent(globals),
+		environment: globals,
 		locals:      make(map[syntax.Expr]int),
 	}
 }
@@ -188,7 +187,7 @@ func (i *Interpreter) VisitReturnStmt(stmt *syntax.Return) (any, error) {
 			return nil, err
 		}
 	}
-	return nil, errorHandler.NewReturn(val)
+	return nil, NewReturn(val)
 }
 
 func (i *Interpreter) VisitLiteralExpr(expr *syntax.Literal) (any, error) {
@@ -340,12 +339,12 @@ func (i *Interpreter) VisitCallExpr(expr *syntax.Call) (any, error) {
 	// "primary" to be callee which includes strings, numbers, etc.
 	function, ok := callee.(Callable)
 	if !ok {
-		return nil, errorHandler.NewRuntimeError(expr.Paren, "Callee must be a function")
+		return nil, NewRuntimeError(expr.Paren, "Callee must be a function")
 	}
 
 	// arguments count must match the function's arity (expected count)
 	if len(args) != function.Arity() {
-		return nil, errorHandler.NewRuntimeError(expr.Paren, fmt.Sprintf("Expected %d arguments but got %d.", function.Arity(), len(args)))
+		return nil, NewRuntimeError(expr.Paren, fmt.Sprintf("Expected %d arguments but got %d.", function.Arity(), len(args)))
 	}
 
 	return function.Call(i, args)
@@ -399,7 +398,7 @@ func (i *Interpreter) stringify(value any) string {
 func (i *Interpreter) checkNumberOperand(operator token.Token, operand any) (float64, error) {
 	val, ok := operand.(float64)
 	if !ok {
-		return 0, errorHandler.NewRuntimeError(operator, "Operator must be a number")
+		return 0, NewRuntimeError(operator, "Operator must be a number")
 	}
 	return val, nil
 }
@@ -412,7 +411,7 @@ func (i *Interpreter) checkNumberOperands(operator token.Token, left any, right 
 	leftVal, lOk := left.(float64)
 	rightVal, rOk := right.(float64)
 	if !lOk || !rOk {
-		return 0, 0, errorHandler.NewRuntimeError(operator, "Operator must be a number")
+		return 0, 0, NewRuntimeError(operator, "Operator must be a number")
 	}
 	return leftVal, rightVal, nil
 }

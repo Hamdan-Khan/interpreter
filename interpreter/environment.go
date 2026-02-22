@@ -1,7 +1,6 @@
 package interpreter
 
 import (
-	"github.com/hamdan-khan/interpreter/errorHandler"
 	"github.com/hamdan-khan/interpreter/token"
 )
 
@@ -40,7 +39,7 @@ func (e *Environment) Get(token token.Token) (any, error) {
 	if e.parent != nil {
 		return e.parent.Get(token)
 	}
-	return nil, errorHandler.NewRuntimeError(token, "Undefined variable")
+	return nil, NewRuntimeError(token, "Undefined variable")
 }
 
 func (e *Environment) Assign(token token.Token, value any) error {
@@ -54,7 +53,7 @@ func (e *Environment) Assign(token token.Token, value any) error {
 	if e.parent != nil {
 		return e.parent.Assign(token, value)
 	}
-	return errorHandler.NewRuntimeError(token, "Undefined variable!")
+	return NewRuntimeError(token, "Undefined variable!")
 }
 
 func (e *Environment) GetAt(distance int, name string) (any, error) {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/hamdan-khan/interpreter/interpreter"
 	"github.com/hamdan-khan/interpreter/parser"
+	"github.com/hamdan-khan/interpreter/token"
 )
 
 func RunFile(path string) {
@@ -15,13 +16,10 @@ func RunFile(path string) {
 		return
 	}
 	fileContet := string(file[:])
-	scanner := NewScanner(fileContet)
+	scanner := token.NewScanner(fileContet)
 	scanner.Scan()
-	for t := range scanner.tokens {
-		fmt.Printf("%v\n", scanner.tokens[t].Lexeme)
-	}
 
-	tokens := scanner.tokens
+	tokens := scanner.Tokens
 	parser := parser.NewParser(tokens)
 	statements, parseErr := parser.Parse()
 	if parseErr != nil {

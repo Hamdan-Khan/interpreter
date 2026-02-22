@@ -1,7 +1,6 @@
 package interpreter
 
 import (
-	"github.com/hamdan-khan/interpreter/errorHandler"
 	"github.com/hamdan-khan/interpreter/syntax"
 )
 
@@ -26,7 +25,7 @@ func (f *Function) Call(interpreter *Interpreter, arguments []any) (any, error) 
 	if err != nil {
 		// return disguised as error is used to unwind the stack of statements
 		// similar to Java's exception throwing
-		if ret, ok := err.(*errorHandler.Return); ok {
+		if ret, ok := err.(*Return); ok {
 			return ret.Value, nil
 		}
 		// if it's not a return error, it's a runtime error

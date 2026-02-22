@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-func main(){
+func main() {
 	argsLen := len(os.Args)
 
 	if argsLen > 2 {
