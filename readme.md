@@ -2,9 +2,9 @@
 
 A tree-walk interpreter for lox programming language written in Go.
 
-It uses the grammar defined in crafting interpreters book by Rob Nystrom. You can find the grammar [here](https://craftinginterpreters.com/appendix-a.html). 
+It uses the grammar defined in crafting interpreters book by Rob Nystrom. You can find the grammar [here](https://craftinginterpreters.com/appendix-i.html). 
 
-Currently, it doesn't support classes but I plan to add them in the future. This is more of a learning project for me than an attempt to create a perfectly working interpreter. I have documented the learning and the process of working of a tree-walk interpreter in this [blog](https://hamdan-khan.github.io/--).
+Currently, it doesn't support classes but I plan to add them in the future. This is more of a learning project for me than an attempt to create a perfectly working interpreter. I have documented the learning and the process of working of a tree-walk interpreter in this [blog](https://hamdan-khan.github.io/blog/interpreter).
 
 ## Syntax
 
